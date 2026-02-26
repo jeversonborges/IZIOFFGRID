@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora Off-Grid — Monitoramento Solar</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+  <script src="scripts.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="header-badge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    Calculadora Off-Grid
+  </div>
+  
+  <h1> PROJETO AUTOMÁTICO OFF-GRID </h1>
+<!-- Scroll Fator Solar -->
+<div class="solar-header-slider">
+  
+  <div class="solar-header-row">
+    <span class="solar-icon">☁️</span>
+
+    <input type="range"
+           id="solar-slider"
+           min="10"
+           max="100"
+           value="70"
+           step="1"
+           oninput="updateSolarFactor(this.value)"
+           class="solar-header-range">
+
+    <span class="solar-icon">☀️</span>
+  </div>
+
+  <div class="solar-header-percentage">
+    Fator Solar: <span id="solar-value">70%</span>
+  </div>
+</div>
+
+</div>
+  <p class="dimensionamento-wrapper">
+  <span id="dimensionamento-texto">Dimensionamento automático : Baterias / Painéis /  Controladoras </span>
+  <span class="progress-bar-bg">
+    <span class="progress-bar-fill" id="dimensionamento-bar"></span>
+  </span>
+</p>
+</header>
+<div class="container">
+  <!-- ═══════ RESULTADOS PRINCIPAIS ═══════ -->
+  <div class="result-grid" id="main-results">
+    <div class="result-card highlight-blue">
+      <div class="result-label">Consumo Total 24h</div>
+      <div class="result-value blue" id="res-consumo">0</div>
+      <div class="result-unit">
+    <span id="res-corrente"></span> A Utilizados pelos equipamentos em
+    <span id="res-tensao"></span>V
+</div>
+    </div>
+    <div class="result-card highlight-solar">
+      <div class="result-label">Painéis 580W Recomendados</div>
+      <div class="result-value solar" id="res-paineis550">0</div>
+      <div class="result-unit">unidades</div>
+    </div>
+    <div class="result-card highlight-solar">
+      <div class="result-label">Painéis 340W Recomendados</div>
+      <div class="result-value solar" id="res-paineis340">0</div>
+      <div class="result-unit">unidades</div>
+    </div>
+    <div class="result-card highlight-battery">
+      <div class="result-label">Baterias 115AH</div>
+      <div class="result-value battery" id="res-115">0</div>
+      <div class="result-unit">unidades (12V 115Ah)</div>
+    </div>
+        <div class="result-card highlight-battery">
+      <div class="result-label">Baterias lithium</div>
+      <div class="result-value battery" id="res-litio">0</div>
+      <div class="result-unit">unidades (48V 100Ah)</div>
+    </div>
+  </div>
+
+  <!-- ═══════ GRÁFICOS ═══════ -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>Distribuição de Consumo por Equipamento</h3>
+      <div class="chart-container"><canvas id="chartConsumo"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Produção Solar vs Consumo</h3>
+      <div class="chart-container"><canvas id="chartBalance"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ═══════ EQUIPAMENTOS -  Array de Equip.input ═══════ -->
+  <div class="card">
+    <div class="section-title">
+      <div class="icon blue">⚡</div>
+      <span>Equipamentos de Consumo</span>
+    </div>
+  <!-- ═══════ Configuração do Sistema : usuário ═══════ -->
+    <div class="table-wrapper">
+      <table id="equip-table">
+        <thead>
+          <tr>
+            <th>Equipamento</th>
+            <th>Qtd</th>
+            <th>Tensão (V)</th>
+            <th>Corrente (Ah)</th>
+            <th>Potência (W/h)</th>
+            <th>Consumo 24h (W)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="equip-body"></tbody>
+      </table>
+    </div>
+
+    <div class="add-row">
+      <div class="config-group">
+        <label>Novo Equipamento</label>
+        <input type="text" id="new-name" placeholder="Nome..." style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem;padding:0.4rem 0.6rem;width:180px;" />
+      </div>
+      <div class="config-group">
+        <label>Qtd</label>
+        <input type="number" id="new-qty" value="1" min="0" style="width:70px;" />
+      </div>
+      <div class="config-group">
+        <label>Tensão (V)</label>
+        <input type="number" id="new-v" value="12" step="0.1" style="width:80px;" />
+      </div>
+      <div class="config-group">
+        <label>Corrente (Ah)</label>
+        <input type="number" id="new-a" value="0.5" step="0.01" style="width:80px;" />
+      </div>
+      <button class="btn btn-primary" onclick="addEquipment()">+ Adicionar</button>
+    </div>
+  </div>
+<div class="card">
+    <div class="section-title">
+      <div class="icon green">⚙️</div>
+      <span>Configuração do Sistema</span>
+    </div>
+    <div class="config-row">
+      <div class="config-group">
+        <label>Tensão do Banco (V)</label>
+        <select id="cfg-tensao" onchange="recalculate()">
+          <option value="12">12V</option>
+          <option value="24" selected>24V</option>
+          <option value="48">48V</option>
+        </select>
+      </div>
+      <div class="config-group">
+        <label>Horas de Autonomia</label>
+        <input type="number" id="cfg-autonomia" value="12" min="1" max="168" class="input-wide" onchange="recalculate()" />
+      </div>
+      <div class="config-group">
+        <label>Insolação (horas/dia)</label>
+        <input type="number" id="cfg-insolacao" value="5" min="1" max="12" step="0.1" class="input-wide" onchange="recalculate()" />
+      </div>
+    </div>
+  </div>
+  <!-- ═══════ CONVERSORES ═══════ -->
+  <div class="card">
+    <div class="section-title">
+      <div class="icon blue">🔌</div>
+      <span>Conversores de Energia</span>
+      <span class="info-tip" data-tip="Conversores adicionam consumo extra ao sistema">?</span>
+    </div>
+    <div class="config-row">
+      <div class="config-group">
+        <label>Conversor DC-DC (+5%)</label>
+        <select id="conv-dcdc" onchange="recalculate()">
+          <option value="1">Ativo</option>
+          <option value="0">Desativado</option>
+        </select>
+      </div>
+      <div class="config-group">
+        <label>Inversor AC-DC (+11%)</label>
+        <select id="conv-acdc" onchange="recalculate()">
+          <option value="0">Desativado</option>
+          <option value="1">Ativo</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <!-- ═══════ PAINÉIS SOLARES ═══════ -->
+  <div class="card">
+    <div class="section-title">
+      <div class="icon solar">☀️</div>
+      <span>Painéis Solares</span>
+    </div>
+
+    <div class="spec-grid">
+      <div class="spec-card" style="border-color: rgba(245,158,11,0.25);">
+        <div class="spec-card-title">
+          <span style="color:var(--solar);">☀️</span> Painel Solar 580W
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Potência Nominal</span>
+          <span class="spec-row-value">580 W</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Voc (Tensão Circuito Aberto)</span>
+          <span class="spec-row-value">50 V</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Eficiência</span>
+          <span class="spec-row-value" id="eff-550">70%</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Produção Diária (por painel)</span>
+          <span class="spec-row-value" id="prod-550" style="color:var(--solar);">1.925 W/24h</span>
+        </div>
+        <div class="spec-row" style="border-bottom:none; padding-top:0.8rem;">
+          <span class="spec-row-label" style="font-weight:700; color:var(--text);">Painéis Necessários</span>
+          <span class="spec-row-value" style="font-size:1.4rem; color:var(--solar);" id="need-550">0</span>
+        </div>
+      </div>
+
+      <div class="spec-card" style="border-color: rgba(245,158,11,0.25);">
+        <div class="spec-card-title">
+          <span style="color:var(--solar);">☀️</span> Painel Solar 340W
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Potência Nominal</span>
+          <span class="spec-row-value">340 W</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Voc (Tensão Circuito Aberto)</span>
+          <span class="spec-row-value">40 V</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Eficiência</span>
+          <span class="spec-row-value" id="eff-340">70%</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Produção Diária (por painel)</span>
+          <span class="spec-row-value" id="prod-340" style="color:var(--solar);">1.190 W</span>
+        </div>
+        <div class="spec-row" style="border-bottom:none; padding-top:0.8rem;">
+          <span class="spec-row-label" style="font-weight:700; color:var(--text);">Painéis Necessários</span>
+          <span class="spec-row-value" style="font-size:1.4rem; color:var(--solar);" id="need-340">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ BANCO DE BATERIAS ═══════ -->
+  <div class="card">
+    <div class="section-title">
+      <div class="icon battery">🔋</div>
+      <span>Banco de Baterias</span>
+    </div>
+
+    <div class="spec-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+      <div class="spec-card" style="border-color: rgba(139,92,246,0.25);">
+        <div class="spec-card-title">
+          <span style="color:var(--battery);">🔋</span> Chumbo Ácido 115Ah
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Tensão</span>
+          <span class="spec-row-value">12V</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Capacidade</span>
+          <span class="spec-row-value">115 Ah</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Profundidade Descarga</span>
+          <span class="spec-row-value">40%</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Banco Requerido</span>
+          <span class="spec-row-value" id="bat-req-115" style="color:var(--battery);">0 W</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Banco Útil</span>
+          <span class="spec-row-value" id="bat-util-115" style="color:var(--green);">0 W</span>
+        </div>
+        <div class="spec-row" style="border-bottom:none; padding-top:0.6rem;">
+          <span class="spec-row-label" style="font-weight:700; color:var(--text);">Baterias Necessárias</span>
+          <span class="spec-row-value" style="font-size:1.4rem; color:var(--battery);" id="need-bat-115">0</span>
+        </div>
+      </div>
+
+      <div class="spec-card" style="border-color: rgba(34,197,94,0.25);">
+        <div class="spec-card-title">
+          <span style="color:var(--green);">🔋</span> Lítio LiFePO4 100Ah
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Tensão</span>
+          <span class="spec-row-value">48V</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Capacidade</span>
+          <span class="spec-row-value">100 Ah</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Profundidade Descarga</span>
+          <span class="spec-row-value">92%</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Banco Requerido</span>
+          <span class="spec-row-value" id="bat-req-litio" style="color:var(--battery);">0 W</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Banco Útil</span>
+          <span class="spec-row-value" id="bat-util-litio" style="color:var(--green);">0 W</span>
+        </div>
+        <div class="spec-row" style="border-bottom:none; padding-top:0.6rem;">
+          <span class="spec-row-label" style="font-weight:700; color:var(--text);">Baterias Necessárias</span>
+          <span class="spec-row-value" style="font-size:1.4rem; color:var(--green);" id="need-bat-litio">0</span>
+        </div>
+      </div>
+
+      <div class="spec-card" style="border-color: rgba(139,92,246,0.25);">
+        <div class="spec-card-title">
+          <span style="color:var(--battery);">🔋</span> Chumbo Ácido 60Ah
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Tensão</span>
+          <span class="spec-row-value">12V</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Capacidade</span>
+          <span class="spec-row-value">60 Ah</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Profundidade Descarga</span>
+          <span class="spec-row-value">40%</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Banco Requerido</span>
+          <span class="spec-row-value" id="bat-req-60" style="color:var(--battery);">0 W</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Banco Útil</span>
+          <span class="spec-row-value" id="bat-util-60" style="color:var(--green);">0 W</span>
+        </div>
+        <div class="spec-row" style="border-bottom:none; padding-top:0.6rem;">
+          <span class="spec-row-label" style="font-weight:700; color:var(--text);">Baterias Necessárias</span>
+          <span class="spec-row-value" style="font-size:1.4rem; color:var(--battery);" id="need-bat-60">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ CONTROLADORAS ═══════ -->
+  <div class="card">
+    <div class="section-title">
+      <div class="icon green">🎛️</div>
+     <span>Controladoras MPPT</span>
+    </div>
+
+    <div class="spec-grid">
+      <div class="spec-card" id="ctrl-intelbras-card">
+        <div class="spec-card-title">
+          <span>🎛️</span> Intelbras MPPT 60Ah
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Tensão</span>
+          <span class="spec-row-value">24V</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Corrente Máxima</span>
+          <span class="spec-row-value">60 Ah</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Tensão Mínima</span>
+          <span class="spec-row-value">23V</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Tensão Máxima</span>
+          <span class="spec-row-value">120V</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Corrente Requerida (Ah)</span>
+          <span class="spec-row-value" id="ctrl-int-ah" style="color:var(--accent-light);">0</span>
+        </div>
+        <div class="spec-row" style="border-bottom:none; padding-top:0.6rem;">
+          <span class="spec-row-label" style="font-weight:700; color:var(--text);">Compatível</span>
+          <span id="ctrl-int-compat"></span>
+        </div>
+      </div>
+
+      <div class="spec-card" id="ctrl-epever-card">
+        <div class="spec-card-title">
+          <span>🎛️</span> Epever MPPT 40Ah
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Tensão</span>
+          <span class="spec-row-value">24V</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Corrente Máxima</span>
+          <span class="spec-row-value">30 Ah</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Tensão Mínima</span>
+          <span class="spec-row-value">30V</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-row-label">Tensão Máxima</span>
+          <span class="spec-row-value">100V</span>
+        </div>
+        <div class="spec-row" style="border-bottom:none; padding-top:0.6rem;">
+          <span class="spec-row-label" style="font-weight:700; color:var(--text);">Compatível</span>
+          <span id="ctrl-ep-compat"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Calculadora Off-Grid de Monitoramento &mdash; Todos os cálculos são realizados automaticamente no navegador
+</footer>
+</body>
+</html>
